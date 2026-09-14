@@ -52,22 +52,46 @@ func _ready() -> void:
 	queue_redraw()
 
 func _load_assets() -> void:
-	textures["menu_background"] = load("res://project/resources/menu/menu-background.png")
-	textures["grass"] = load("res://project/resources/tiles/grass.png")
-	textures["dirt"] = load("res://project/resources/tiles/dirt.png")
-	textures["crash_pod"] = load("res://project/resources/buildings/building-9.png")
-	textures["wall"] = load("res://project/resources/buildings/building-10.png")
-	textures["tree"] = load("res://project/resources/items/item-0.png")
-	textures["rock"] = load("res://project/resources/items/item-1.png")
-	textures["metal"] = load("res://project/resources/items/item-2.png")
-	textures["crystal"] = load("res://project/resources/items/item-3.png")
-	textures["food"] = load("res://project/resources/items/item-4.png")
+	var required_assets := {
+		"menu_background": "res://project/resources/menu/menu-background.png",
+		"grass": "res://project/resources/tiles/grass.png",
+		"dirt": "res://project/resources/tiles/dirt.png",
+		"crash_pod": "res://project/resources/buildings/building-9.png",
+		"wall": "res://project/resources/buildings/building-10.png",
+		"tree": "res://project/resources/items/item-0.png",
+		"rock": "res://project/resources/items/item-1.png",
+		"metal": "res://project/resources/items/item-2.png",
+		"crystal": "res://project/resources/items/item-3.png",
+		"food": "res://project/resources/items/item-4.png",
+	}
+	for key in required_assets.keys():
+		var asset := load(required_assets[key])
+		if asset != null:
+			textures[key] = asset
+		else:
+			push_warning("Missing required asset: %s" % required_assets[key])
 	for character in ["rex", "luna", "bolt"]:
 		for frame in range(6):
-			textures[character + str(frame)] = load("res://project/resources/characters/%s-%d.png" % [character, frame])
+			var path := "res://project/resources/characters/%s-%d.png" % [character, frame]
+			var asset := load(path)
+			if asset != null:
+				textures[character + str(frame)] = asset
+			else:
+				push_warning("Missing character asset: %s" % path)
 	for monster_name in ["slime", "zapper", "golem", "stalker", "bat"]:
 		for frame in range(6):
-			textures[monster_name + str(frame)] = load("res://project/resources/monsters/%s-%d.png" % [monster_name, frame])
+			var path := "res://project/resources/monsters/%s-%d.png" % [monster_name, frame]
+			var asset := load(path)
+			if asset != null:
+				textures[monster_name + str(frame)] = asset
+			else:
+				push_warning("Missing monster asset: %s" % path)
+
+func _get_active_colonist_index() -> int:
+	for i in range(colonists.size()):
+		if colonists[i].hp > 0.0:
+			return i
+	return -1
 
 func _reset_world() -> void:
 	resource_nodes.clear()
@@ -196,15 +220,22 @@ func _match_resource(kind: String, amount: int) -> void:
 		"food": food += amount
 
 func _update_monsters(delta: float) -> void:
+	var active_colonist_index := _get_active_colonist_index()
+	if active_colonist_index < 0:
+		_finish_game("KOLONI HANCUR", "Semua kolonis tumbang pada hari %d." % day)
+		return
 	for monster in monsters:
 		if monster.hp <= 0.0: continue
-		var target: Dictionary = colonists[0]
-		var nearest := monster.pos.distance_to(target.pos)
+		var target: Dictionary = colonists[active_colonist_index]
+		var nearest := INF
 		for colonist in colonists:
+			if colonist.hp <= 0.0: continue
 			var distance := monster.pos.distance_to(colonist.pos)
-			if colonist.hp > 0.0 and distance < nearest:
+			if distance < nearest:
 				target = colonist
 				nearest = distance
+		if nearest == INF:
+			continue
 		if nearest > 38.0:
 			monster.pos = monster.pos.move_toward(target.pos, float(monster.speed) * delta)
 		elif monster.attack_timer <= 0.0:
@@ -287,6 +318,10 @@ func _pointer_up(screen_pos: Vector2) -> void:
 	if screen_pos.y > 435.0 and Rect2(790, 435, 100, 78).has_point(screen_pos):
 		build_mode = true
 		_set_alert("Bangun dinding: tap tanah (5 kayu)")
+		return
+	if selected_colonist < 0 or selected_colonist >= colonists.size():
+		selected_colonist = _get_active_colonist_index()
+	if selected_colonist < 0:
 		return
 	var world_pos := screen_pos + camera_offset
 	if build_mode:
