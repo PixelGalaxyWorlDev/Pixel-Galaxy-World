@@ -192,6 +192,54 @@ func _role_bonus_harvest(colonist: Dictionary) -> int:
 		_:
 			return 1
 
+func _find_best_resource_for_colonist(colonist: Dictionary) -> int:
+	var best_index := -1
+	var best_distance := INF
+	for i in range(resource_nodes.size()):
+		var node: Dictionary = resource_nodes[i]
+		if node.get("amount", 0) <= 0: continue
+		if _get_colonist_role(colonist) == "fighter" and node.get("kind", "") == "food":
+			continue
+		var distance := colonist.pos.distance_to(node.get("pos", Vector2.ZERO))
+		if distance < best_distance:
+			best_distance = distance
+			best_index = i
+	return best_index
+
+func _auto_assign_tasks() -> void:
+	for i in range(colonists.size()):
+		var colonist: Dictionary = colonists[i]
+		if colonist.hp <= 0.0: continue
+		if colonist.job == "attack":
+			continue
+		if colonist.hunger < 35.0 and food > 0:
+			colonist.hunger = minf(100.0, colonist.hunger + 25.0)
+			food -= 1
+		if colonist.sleep < 30.0 and time_of_day > 0.8:
+			colonist.job = ""
+			colonist.target = -1
+			continue
+		var nearest_monster_index := -1
+		var nearest_monster_distance := 999999.0
+		for j in range(monsters.size()):
+			var monster: Dictionary = monsters[j]
+			if monster.hp <= 0.0: continue
+			var d := colonist.pos.distance_to(monster.pos)
+			if d < nearest_monster_distance:
+				nearest_monster_index = j
+				nearest_monster_distance = d
+		if _get_colonist_role(colonist) == "fighter" and nearest_monster_index >= 0 and nearest_monster_distance < 180.0:
+			colonist.job = "attack"
+			continue
+		var target_index := _find_best_resource_for_colonist(colonist)
+		if target_index >= 0:
+			colonist.job = "harvest"
+			colonist.target = target_index
+		else:
+			colonist.job = ""
+			colonist.target = -1
+		colonists[i] = colonist
+
 func _save_game() -> void:
 	var save_data := {
 		"mode": mode,
@@ -369,6 +417,7 @@ func _update_game(delta: float) -> void:
 			colonist.mood = minf(100.0, colonist.mood + delta * 2.0)
 		_update_colonist(colonist, delta)
 		colonists[i] = colonist
+	_auto_assign_tasks()
 	_update_monsters(delta)
 	if _is_night() and night_spawn_timer <= 0.0:
 		night_spawn_timer = 8.0
@@ -661,6 +710,8 @@ func _draw_hud() -> void:
 		draw_string(ThemeDB.fallback_font, Vector2(x, 480), "Lapar %d  Tidur %d  Job %s" % [int(colonist.hunger), int(colonist.sleep), colonist.job if colonist.job != "" else "kosong"], HORIZONTAL_ALIGNMENT_LEFT, -1, 11, Color("dbe7ff"))
 	_draw_button(Rect2(790, 445, 100, 58), "PALU", Color("7b5534"))
 	_draw_button(Rect2(700, 445, 70, 28), "AUDIO %s" % ("ON" if audio_enabled else "OFF"), Color("3869a8"))
+	if _is_night():
+		draw_string(ThemeDB.fallback_font, Vector2(560, 20), "NIGHT DANGER", HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color("ff8f7d"))
 	if alert_text != "":
 		var lines := alert_text.split("\n")
 		for i in range(lines.size()):
