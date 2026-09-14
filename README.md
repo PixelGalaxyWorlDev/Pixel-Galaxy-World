@@ -111,6 +111,6 @@ Kapal koloni **Nusantara-7** jatuh di planet **Kepler-Pixel**. CrashPod berisi t
 - **Kode & logic**: MIT License
 - **Aset pixel art**: dibuat khusus untuk project ini (lihat `docs/ASSETS_INDEX.md`)
 - **Audio**: disintesis programatik (chiptune pentatonik + drone ambient)
-- Dibuat oleh **KenopsiaHUB-101** dengan bantuan **SuperNinja AI** (NinjaTech AI)
+- Dibuat oleh **PixelGalaxyWorlDev** dengan bantuan **Github CopilotAgent** 
 
-**Repo**: https://github.com/KenopsiaHUB-101/Pixel-Galaxy-World
+**Repo**: https://github.com/PixelGalaxyWorlDev/Pixel-Galaxy-World
