@@ -236,6 +236,11 @@ def _death_check():
         cond("VarObjet", ["Bolt", "isDown", "=", "1"]),
         once(),
     ], [
+        # simpan hasil ke variabel GLOBAL (persist antar scene)
+        act("ModVarGlobalTxt", ["G_Title", "=", "\"KOLONI HANCUR\""]),
+        act("ModVarGlobalTxt", ["G_Stat", "=",
+            "\"Kolonis bertahan selama \" + ToString(Variable(Day)) + \" hari.\""]),
+        act("StopSoundChannel", ["", "2"]),
         act("Wait", ["2"]),
         act("Scene", ["", "\"GameOver\"", "true"]),
     ]))
@@ -249,7 +254,11 @@ def _win_check():
         cond("VarScene", ["Day", ">=", "30"]),
         once(),
     ], [
-        act("ModVarScene", ["WinFlag", "=", "1"]),
+        # simpan hasil ke variabel GLOBAL (persist antar scene)
+        act("ModVarGlobalTxt", ["G_Title", "=", "\"KOLONI SELAMAT!\""]),
+        act("ModVarGlobalTxt", ["G_Stat", "=",
+            "\"Bertahan sampai hari 30. Misi selesai!\""]),
+        act("StopSoundChannel", ["", "2"]),
         act("Wait", ["1"]),
         act("Scene", ["", "\"GameOver\"", "true"]),
     ]))
@@ -285,13 +294,15 @@ def main_menu_scene():
     events = [
         ev([cond("SceneJustBegins", [""])], [
             act("SceneBackground", ["", "\"40;40;70\""]),
-            act("PlaySound", ["", "\"menu.mp3\"", "", "yes"]),
+            act("PlaySoundOnChannel", ["", "menu.wav", "1", "yes", "60", "1"]),
         ]),
         ev([cond("IsCursorOnObject", ["BtnStart", "", "yes", ""]),
             cond("MouseButtonReleased", ["", "Left"])], [
+            act("StopSoundChannel", ["", "1"]),
             act("Scene", ["", "\"GameScene\"", "true"])]),
         ev([cond("IsCursorOnObject", ["BtnQuit", "", "yes", ""]),
             cond("MouseButtonReleased", ["", "Left"])], [
+            act("StopSoundChannel", ["", "1"]),
             act("Quit", [""])]),
     ]
     instances = [
@@ -311,12 +322,12 @@ def game_over_scene():
     events = [
         ev([cond("SceneJustBegins", [""])], [
             act("SceneBackground", ["", "\"20;10;30\""]),
-            act("ModVarSceneTxt", ["GameOverStat", "=",
-                "Variable(WinFlag) = 1 ? \"KOLONI SELAMAT! Bertahan \" + ToString(Variable(Day)) + \" hari.\" : \"Kolonis bertahan selama \" + ToString(Variable(Day)) + \" hari.\""]),
-            act("TextObject::String", ["TextGoStat", "=", "Variable(GameOverStat)"]),
+            act("TextObject::String", ["TextGameOver", "=", "GlobalVariableString(G_Title)"]),
+            act("TextObject::String", ["TextGoStat", "=", "GlobalVariableString(G_Stat)"]),
         ]),
         ev([cond("IsCursorOnObject", ["BtnRetry", "", "yes", ""]),
             cond("MouseButtonReleased", ["", "Left"])], [
+            act("StopSoundChannel", ["", "2"]),
             act("Scene", ["", "\"GameScene\"", "true"])]),
     ]
     instances = [
@@ -363,6 +374,8 @@ def _game_instances():
     inst.append(instance("Rex", 300, 330, z=5))
     inst.append(instance("Luna", 340, 360, z=5))
     inst.append(instance("Bolt", 380, 400, z=5))
+    # --- overlay malam (dibuat custom size seluruh dunia, z=90) ---
+    inst.append(instance("NightOverlay", 0, 0, z=90, custom=True, w=WORLD_W, h=WORLD_H))
     # --- HUD atas ---
     inst.append(instance("UIPanel", 0, 0, z=100, custom=True, w=W, h=34))
     inst.append(instance("TextDay", 12, 8, z=101))
@@ -400,11 +413,13 @@ def _game_events():
             act("ModVarScene", ["RaidTimer", "=", "300"]),
             act("ModVarScene", ["WinFlag", "=", "0"]),
             act("ModVarScene", ["Selection", "=", "0"]),
-            act("ModVarSceneTxt", ["GameOverStat", "=", "\"-\""]),
+            act("ModVarGlobalTxt", ["G_Title", "=", "\"KOLONI HANCUR\""]),
+            act("ModVarGlobalTxt", ["G_Stat", "=", "\"-\""]),
             act("ResetTimer", ["", "\"raid\""]),
             act("ResetTimer", ["", "\"nightspawn\""]),
             act("Hide", ["BtnPlay"]),
-            act("PlaySound", ["", "\"ambient.mp3\"", "", "yes"]),
+            act("PlaySoundOnChannel", ["", "ambient.wav", "2", "yes", "40", "1"]),
+            act("Hide", ["NightOverlay"]),
         ]),
     ]))
     # ============ KAMERA ============
@@ -565,7 +580,7 @@ def _game_events():
             act("Create", ["", "Zapper",
                 "CameraCenterX(\"\") - 450", "CameraCenterY(\"\") + 100", "\"\""]),
             act("TextObject::String", ["TextAlert", "=", "\"RAID! Monster menyerang!\""]),
-            act("PlaySound", ["", "\"alert.mp3\"", "", "yes"]),
+            act("PlaySoundOnChannel", ["", "alert.wav", "3", "no", "100", "1"]),
             act("ModVarScene", ["RaidTimer", "-", "20"]),
         ]),
         comment("monster mengejar kolonis terdekat"),
@@ -641,7 +656,7 @@ def _game_events():
                 "Round(MouseX(\"\",0)/32)*32", "Round(MouseY(\"\",0)/32)*32", "\"\""]),
             act("ModVarScene", ["Wood", "-", "5"]),
             act("ModVarScene", ["BuildMode", "=", "0"]),
-            act("PlaySound", ["", "\"build.mp3\"", "", "yes"]),
+            act("PlaySoundOnChannel", ["", "build.wav", "4", "no", "100", "1"]),
         ]),
         ev([cond("VarScene", ["BuildMode", "=", "1"]),
             cond("MouseButtonReleased", ["", "Left"]),

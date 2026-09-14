@@ -6,16 +6,22 @@ _HERE = os.path.dirname(os.path.abspath(__file__))
 RES = os.path.join(_HERE, "..", "project", "resources")
 
 def scan_resources():
-    """Scan semua PNG di resources → entri resource GDevelop."""
+    """Scan semua PNG (image) + WAV (audio) di resources → entri resource GDevelop."""
     out = []
     for root, _, files in os.walk(RES):
         for f in sorted(files):
-            if not f.endswith(".png"):
-                continue
             rel = os.path.relpath(os.path.join(root, f), os.path.join(_HERE, "..", "project")).replace("\\", "/")
-            out.append({
-                "alwaysLoaded": True, "file": rel, "kind": "image", "metadata": "",
-                "name": f, "smoothed": False, "userAdded": True})
+            if f.endswith(".png"):
+                out.append({
+                    "alwaysLoaded": True, "file": rel, "kind": "image", "metadata": "",
+                    "name": f, "smoothed": False, "userAdded": True})
+            elif f.endswith(".wav"):
+                # kind audio; nama resource = nama file (PlaySoundOnChannel pakai nama ini)
+                out.append({
+                    "file": rel, "kind": "audio", "metadata": "",
+                    "name": f, "preloadAsMusic": True,
+                    "preloadAsSound": False, "preloadInCache": True,
+                    "userAdded": True})
     return out
 
 # ---------- frame lists ----------
