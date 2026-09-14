@@ -113,6 +113,12 @@ func _dict_to_vector(value: Dictionary) -> Vector2:
 		return Vector2.ZERO
 	return Vector2(float(value.get("x", 0.0)), float(value.get("y", 0.0)))
 
+func _get_position(data: Dictionary) -> Vector2:
+	var value: Variant = data.get("pos", Vector2.ZERO)
+	if value is Vector2:
+		return value
+	return Vector2.ZERO
+
 func _reset_world() -> void:
 	resource_nodes.clear()
 	buildings.clear()
@@ -167,7 +173,8 @@ func _show_tutorial() -> void:
 
 func _can_place_wall(pos: Vector2) -> bool:
 	for building in buildings:
-		if building.get("kind", "") == "wall" and building.get("pos", Vector2.ZERO).distance_to(pos) < 10.0:
+		var building_pos: Vector2 = _get_position(building)
+		if building.get("kind", "") == "wall" and building_pos.distance_to(pos) < 10.0:
 			return false
 	return true
 
@@ -198,13 +205,15 @@ func _role_bonus_harvest(colonist: Dictionary) -> int:
 
 func _find_best_resource_for_colonist(colonist: Dictionary) -> int:
 	var best_index := -1
-	var best_distance := INF
+	var best_distance: float = INF
 	for i in range(resource_nodes.size()):
 		var node: Dictionary = resource_nodes[i]
 		if node.get("amount", 0) <= 0: continue
 		if _get_colonist_role(colonist) == "fighter" and node.get("kind", "") == "food":
 			continue
-		var distance: float = colonist.pos.distance_to(node.get("pos", Vector2.ZERO))
+		var colonist_pos: Vector2 = _get_position(colonist)
+		var node_pos: Vector2 = _get_position(node)
+		var distance: float = colonist_pos.distance_to(node_pos)
 		if distance < best_distance:
 			best_distance = distance
 			best_index = i
@@ -228,7 +237,7 @@ func _auto_assign_tasks() -> void:
 		for j in range(monsters.size()):
 			var monster: Dictionary = monsters[j]
 			if monster.hp <= 0.0: continue
-			var d: float = colonist.pos.distance_to(monster.pos)
+			var d: float = _get_position(colonist).distance_to(_get_position(monster))
 			if d < nearest_monster_distance:
 				nearest_monster_index = j
 				nearest_monster_distance = d
@@ -444,7 +453,7 @@ func _update_colonist(colonist: Dictionary, delta: float) -> void:
 		var nearest_monster: Dictionary = {}
 		var nearest_distance := INF
 		for monster in monsters:
-			var distance: float = colonist.pos.distance_to(monster.pos)
+			var distance: float = _get_position(colonist).distance_to(_get_position(monster))
 			if monster.hp > 0.0 and distance < nearest_distance:
 				nearest_monster = monster
 				nearest_distance = distance
@@ -457,7 +466,7 @@ func _update_colonist(colonist: Dictionary, delta: float) -> void:
 		colonist.job = ""
 		colonist.target = -1
 		return
-	var distance: float = colonist.pos.distance_to(node.pos)
+	var distance: float = _get_position(colonist).distance_to(_get_position(node))
 	if distance > 42.0:
 		colonist.pos = colonist.pos.move_toward(node.pos, 120.0 * delta)
 	elif harvest_timer <= 0.0:
@@ -486,10 +495,10 @@ func _update_monsters(delta: float) -> void:
 	for monster in monsters:
 		if monster.hp <= 0.0: continue
 		var target: Dictionary = colonists[active_colonist_index]
-		var nearest := INF
+		var nearest: float = INF
 		for colonist in colonists:
 			if colonist.hp <= 0.0: continue
-			var distance: float = monster.pos.distance_to(colonist.pos)
+			var distance: float = _get_position(monster).distance_to(_get_position(colonist))
 			if distance < nearest:
 				target = colonist
 				nearest = distance
