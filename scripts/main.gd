@@ -6,6 +6,7 @@ const TILE_SIZE := 32.0
 const DAY_LENGTH := 480.0
 const NIGHT_START := 0.70
 const NIGHT_END := 0.98
+const SAVE_PATH := "user://pixel_galaxy_world.save"
 
 var mode := "menu"
 var paused := false
@@ -21,9 +22,11 @@ var raid_timer := 300.0
 var night_spawn_timer := 8.0
 var harvest_timer := 0.0
 var attack_timer := 0.0
+var save_timer := 8.0
 var alert_text := ""
 var alert_time := 0.0
 var selected_colonist := 0
+var tutorial_seen := false
 var wood := 20
 var stone := 10
 var metal := 0
@@ -48,7 +51,9 @@ func _ready() -> void:
 	audio_player = AudioStreamPlayer.new()
 	add_child(audio_player)
 	_load_assets()
-	_reset_world()
+	if not _load_game():
+		_reset_world()
+		_show_tutorial()
 	queue_redraw()
 
 func _load_assets() -> void:
@@ -93,6 +98,14 @@ func _get_active_colonist_index() -> int:
 			return i
 	return -1
 
+func _vector_to_dict(value: Vector2) -> Dictionary:
+	return {"x": value.x, "y": value.y}
+
+func _dict_to_vector(value: Dictionary) -> Vector2:
+	if value.is_empty():
+		return Vector2.ZERO
+	return Vector2(float(value.get("x", 0.0)), float(value.get("y", 0.0)))
+
 func _reset_world() -> void:
 	resource_nodes.clear()
 	buildings.clear()
@@ -105,6 +118,7 @@ func _reset_world() -> void:
 	night_spawn_timer = 8.0
 	harvest_timer = 0.0
 	attack_timer = 0.0
+	save_timer = 8.0
 	wood = 20
 	stone = 10
 	metal = 0
@@ -133,12 +147,156 @@ func _reset_world() -> void:
 		resource_nodes.append({"kind": kind, "pos": spots[i] + Vector2(rng.randf_range(-45, 45), rng.randf_range(-45, 45)), "amount": amount})
 	buildings.append({"kind": "crash_pod", "pos": Vector2(380, 260)})
 
+func _show_tutorial() -> void:
+	if tutorial_seen:
+		return
+	tutorial_seen = true
+	_set_alert("Panduan:\n1. Tap kolonis\n2. Tap sumber daya\n3. Tekan PALU untuk bangun")
+
+func _save_game() -> void:
+	var save_data := {
+		"mode": mode,
+		"paused": paused,
+		"game_speed": game_speed,
+		"day": day,
+		"time_of_day": time_of_day,
+		"camera_offset": _vector_to_dict(camera_offset),
+		"selected_colonist": selected_colonist,
+		"wood": wood,
+		"stone": stone,
+		"metal": metal,
+		"crystal": crystal,
+		"food": food,
+		"tutorial_seen": tutorial_seen,
+		"raid_timer": raid_timer,
+		"night_spawn_timer": night_spawn_timer,
+		"harvest_timer": harvest_timer,
+		"attack_timer": attack_timer,
+		"colonists": [],
+		"resource_nodes": [],
+		"buildings": [],
+		"monsters": [],
+	}
+	for colonist in colonists:
+		save_data["colonists"].append({
+			"name": colonist.get("name", ""),
+			"pos": _vector_to_dict(colonist.get("pos", Vector2.ZERO)),
+			"hp": colonist.get("hp", 0.0),
+			"hunger": colonist.get("hunger", 0.0),
+			"sleep": colonist.get("sleep", 0.0),
+			"mood": colonist.get("mood", 0.0),
+			"job": colonist.get("job", ""),
+			"target": colonist.get("target", -1),
+		})
+	for node in resource_nodes:
+		save_data["resource_nodes"].append({
+			"kind": node.get("kind", ""),
+			"pos": _vector_to_dict(node.get("pos", Vector2.ZERO)),
+			"amount": node.get("amount", 0),
+		})
+	for building in buildings:
+		save_data["buildings"].append({
+			"kind": building.get("kind", ""),
+			"pos": _vector_to_dict(building.get("pos", Vector2.ZERO)),
+		})
+	for monster in monsters:
+		save_data["monsters"].append({
+			"kind": monster.get("kind", ""),
+			"pos": _vector_to_dict(monster.get("pos", Vector2.ZERO)),
+			"hp": monster.get("hp", 0.0),
+			"damage": monster.get("damage", 0),
+			"speed": monster.get("speed", 0),
+			"frame_time": monster.get("frame_time", 0.0),
+			"attack_timer": monster.get("attack_timer", 0.0),
+		})
+	var file := FileAccess.open(SAVE_PATH, FileAccess.WRITE)
+	if file == null:
+		push_warning("Save failed: %s" % SAVE_PATH)
+		return
+	file.store_string(JSON.stringify(save_data))
+	file.close()
+
+func _load_game() -> bool:
+	var file := FileAccess.open(SAVE_PATH, FileAccess.READ)
+	if file == null:
+		return false
+	var contents := file.get_as_text()
+	file.close()
+	if contents.strip_edges() == "":
+		return false
+	var parsed = JSON.parse_string(contents)
+	if typeof(parsed) != TYPE_DICTIONARY:
+		return false
+	if not parsed.has("day"):
+		return false
+	mode = parsed.get("mode", "game")
+	paused = bool(parsed.get("paused", false))
+	game_speed = float(parsed.get("game_speed", 1.0))
+	day = int(parsed.get("day", 1))
+	time_of_day = float(parsed.get("time_of_day", 0.2))
+	camera_offset = _dict_to_vector(parsed.get("camera_offset", {"x": 0.0, "y": 0.0}))
+	selected_colonist = int(parsed.get("selected_colonist", 0))
+	wood = int(parsed.get("wood", 20))
+	stone = int(parsed.get("stone", 10))
+	metal = int(parsed.get("metal", 0))
+	crystal = int(parsed.get("crystal", 0))
+	food = int(parsed.get("food", 10))
+	tutorial_seen = bool(parsed.get("tutorial_seen", false))
+	raid_timer = float(parsed.get("raid_timer", 300.0))
+	night_spawn_timer = float(parsed.get("night_spawn_timer", 8.0))
+	harvest_timer = float(parsed.get("harvest_timer", 0.0))
+	attack_timer = float(parsed.get("attack_timer", 0.0))
+	colonists.clear()
+	for colonist_data in parsed.get("colonists", []):
+		colonists.append({
+			"name": str(colonist_data.get("name", "")),
+			"pos": _dict_to_vector(colonist_data.get("pos", {"x": 0.0, "y": 0.0})),
+			"hp": float(colonist_data.get("hp", 100.0)),
+			"hunger": float(colonist_data.get("hunger", 100.0)),
+			"sleep": float(colonist_data.get("sleep", 100.0)),
+			"mood": float(colonist_data.get("mood", 100.0)),
+			"job": str(colonist_data.get("job", "")),
+			"target": int(colonist_data.get("target", -1)),
+		})
+	resource_nodes.clear()
+	for node_data in parsed.get("resource_nodes", []):
+		resource_nodes.append({
+			"kind": str(node_data.get("kind", "")),
+			"pos": _dict_to_vector(node_data.get("pos", {"x": 0.0, "y": 0.0})),
+			"amount": int(node_data.get("amount", 0)),
+		})
+	buildings.clear()
+	for building_data in parsed.get("buildings", []):
+		buildings.append({
+			"kind": str(building_data.get("kind", "")),
+			"pos": _dict_to_vector(building_data.get("pos", {"x": 0.0, "y": 0.0})),
+		})
+	monsters.clear()
+	for monster_data in parsed.get("monsters", []):
+		monsters.append({
+			"kind": str(monster_data.get("kind", "")),
+			"pos": _dict_to_vector(monster_data.get("pos", {"x": 0.0, "y": 0.0})),
+			"hp": float(monster_data.get("hp", 0.0)),
+			"damage": int(monster_data.get("damage", 0)),
+			"speed": int(monster_data.get("speed", 0)),
+			"frame_time": float(monster_data.get("frame_time", 0.0)),
+			"attack_timer": float(monster_data.get("attack_timer", 0.0)),
+		})
+	return true
+
 func _process(delta: float) -> void:
-	if mode == "game" and not paused:
-		_update_game(delta * game_speed)
+	if mode == "game":
+		if not tutorial_seen:
+			_show_tutorial()
+		if not paused:
+			_update_game(delta * game_speed)
 	if alert_time > 0.0:
 		alert_time -= delta
 		if alert_time <= 0.0: alert_text = ""
+	save_timer -= delta
+	if mode == "game" and save_timer <= 0.0:
+		save_timer = 8.0
+		_save_game()
 	queue_redraw()
 
 func _update_game(delta: float) -> void:
@@ -304,11 +462,15 @@ func _pointer_up(screen_pos: Vector2) -> void:
 		if Rect2(330, 250, 250, 60).has_point(screen_pos):
 			mode = "game"
 			_play_audio("ambient.wav")
+			_show_tutorial()
+			_save_game()
 		return
 	if mode == "over":
 		if Rect2(330, 350, 250, 60).has_point(screen_pos):
 			_reset_world()
 			mode = "game"
+			_show_tutorial()
+			_save_game()
 		return
 	if screen_pos.y < 52.0:
 		if Rect2(830, 4, 38, 40).has_point(screen_pos): paused = true
@@ -330,6 +492,7 @@ func _pointer_up(screen_pos: Vector2) -> void:
 			wood -= 5
 			build_mode = false
 			_play_audio("build.wav")
+			_save_game()
 		else:
 			build_mode = false
 			_set_alert("Kayu kurang!")
@@ -342,10 +505,12 @@ func _pointer_up(screen_pos: Vector2) -> void:
 		if world_pos.distance_to(resource_nodes[i].pos) < 45.0 and resource_nodes[i].amount > 0:
 			colonists[selected_colonist].job = "harvest"
 			colonists[selected_colonist].target = i
+			_save_game()
 			return
 	for monster in monsters:
 		if world_pos.distance_to(monster.pos) < 55.0:
 			colonists[selected_colonist].job = "attack"
+			_save_game()
 			return
 
 func _play_audio(file_name: String) -> void:
