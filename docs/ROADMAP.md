@@ -1,6 +1,6 @@
 # 🗺️ ROADMAP — Pixel Galaxy World
 
-Status **v1.0 PLAYABLE**: 3 scene, 59 objek, 214 events, 156 aset — siap dibuka & dibuild di GDevelop (Android/Web).
+Status **v1.0 PLAYABLE**: scene utama Godot, controller gameplay, dan 156 aset — siap dibuka di Godot Android/Desktop.
 
 ---
 
@@ -24,7 +24,7 @@ Status **v1.0 PLAYABLE**: 3 scene, 59 objek, 214 events, 156 aset — siap dibuk
 
 ## 🚧 v1.1 — Base Building & Furnishing (prioritas tinggi)
 
-Objek sudah ada di game.json, tinggal wire event build (aset lengkap):
+Objek dan aset berikut menjadi target pengembangan Godot berikutnya:
 
 - [ ] **Build menu lengkap**: Door, Bed, Table, Lamp, Stove, ResearchBench, FarmPlot, SolarPanel, Turret, WallStone — perlu biaya berbeda (mis. WallStone 8 batu)
 - [ ] **Fungsi tempat tidur**: kolonis malam tidur di Bed → sleep naik cepat, mood naik
@@ -75,7 +75,7 @@ Objek sudah ada di game.json, tinggal wire event build (aset lengkap):
 - [ ] Pathfinding behavior untuk kolonis (sekarang pakai AddForceTowardPosition — cukup untuk map terbuka, tapi akan nabrak dinding: perlu Pathfinding obstacle di v1.1 build)
 - [ ] Group objects (GDevelop objectsGroups) untuk "allColonists"/"allMonsters" — merapikan event picker
 - [ ] Event-based behavior extension untuk AI kolonis (kode bisa dipisah reusable)
-- [ ] Optimasi: sekarang 5878 instance tile — jika lag di HP low-end, ubah ke TiledSprite atau 1 tile besar per biome (opsional — game.json sudah pixelsRounding+linear)
+- [ ] Optimasi: jika grid tile lag di HP low-end, ubah ke TileMap atau satu tile besar per biome.
 
 ---
 

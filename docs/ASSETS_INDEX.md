@@ -1,6 +1,6 @@
 # 📦 ASSETS_INDEX — Katalog Aset Pixel Galaxy World
 
-Katalog lengkap **156 aset** di `project/resources/` — dipakai game.json v1.0 maupun disiapkan untuk v1.1+.
+Katalog lengkap **156 aset** di `project/resources/` — dipakai runtime Godot dan disiapkan untuk pengembangan berikutnya.
 
 > Dipakai di v1.0: **79 aset** (75 gambar + 4 audio) • Cadangan: **77 gambar** untuk v1.1+
 
@@ -15,7 +15,7 @@ Katalog lengkap **156 aset** di `project/resources/` — dipakai game.json v1.0 
 | `alert.wav` | 0.6s | Raid (channel 3, one-shot) | Alarm raid — dua nada naik square 660→880 Hz |
 | `build.wav` | 0.2s | Bangun dinding (channel 4, one-shot) | Thunk konstruksi — sine 140 Hz + noise hit |
 
-Di-generate oleh `tools/gen_audio.py` (stdlib Python — tanpa dependency). Regenerasi: `python3 tools/gen_audio.py`.
+File audio sudah disimpan dalam format WAV yang langsung dapat dibaca Godot.
 
 ---
 
@@ -66,7 +66,7 @@ Monster malam — 6 frame per monster: `0-2` walk, `3` idle, `4` attack, `5` hit
 | `building-5.png` | Turret | ✅ objek ada |
 | `building-2,4,6,7,8,11,16,19.png` | — | 🔒 cadangan v1.1 (varian bangunan) |
 
-> Objek bangunan (Door/Bed/Stove/dst) sudah terdefinisi di game.json namun belum semua dipakai event build — lihat `docs/ROADMAP.md`.
+> Sprite bangunan (Door/Bed/Stove/dst) sudah tersedia, tetapi belum semua memiliki logic build — lihat `docs/ROADMAP.md`.
 
 ---
 
@@ -133,7 +133,7 @@ Monster malam — 6 frame per monster: `0-2` walk, `3` idle, `4` attack, `5` hit
 
 ---
 
-## 📊 Ringkasan
+## Ringkasan
 
 | Folder | Jumlah | Dipakai v1.0 | Cadangan v1.1 |
 |---|---|---|---|
