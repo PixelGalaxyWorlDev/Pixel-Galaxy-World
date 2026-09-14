@@ -7,6 +7,8 @@ const DAY_LENGTH := 480.0
 const NIGHT_START := 0.70
 const NIGHT_END := 0.98
 const SAVE_PATH := "user://pixel_galaxy_world.save"
+const BUILD_COST_WALL := 5
+const BASE_RESOURCE_GAIN := 1
 
 var mode := "menu"
 var paused := false
@@ -31,6 +33,7 @@ var selected_colonist := 0
 var tutorial_seen := false
 var build_preview_pos := Vector2.ZERO
 var build_preview_active := false
+var danger_level := 0.0
 var wood := 20
 var stone := 10
 var metal := 0
@@ -132,6 +135,7 @@ func _reset_world() -> void:
 	build_mode = false
 	build_preview_active = false
 	build_preview_pos = Vector2.ZERO
+	danger_level = 0.0
 	alert_text = ""
 	for i in range(colonists.size()):
 		var colonist: Dictionary = colonists[i]
@@ -392,6 +396,7 @@ func _process(delta: float) -> void:
 	queue_redraw()
 
 func _update_game(delta: float) -> void:
+	danger_level = 0.0 if not _is_night() else clampf((time_of_day - NIGHT_START) / (NIGHT_END - NIGHT_START), 0.0, 1.0)
 	time_of_day += delta / DAY_LENGTH
 	if time_of_day >= 1.0:
 		time_of_day = 0.0
@@ -457,7 +462,7 @@ func _update_colonist(colonist: Dictionary, delta: float) -> void:
 		colonist.pos = colonist.pos.move_toward(node.pos, 120.0 * delta)
 	elif harvest_timer <= 0.0:
 		harvest_timer = 1.2
-		var gain_amount := _role_bonus_harvest(colonist)
+		var gain_amount := _role_bonus_harvest(colonist) + BASE_RESOURCE_GAIN
 		if node.kind in ["tree", "rock", "food"]:
 			gain_amount += 1
 		node.amount -= 1
@@ -602,9 +607,9 @@ func _pointer_up(screen_pos: Vector2) -> void:
 	if build_mode:
 		build_preview_active = false
 		var wall_pos := (world_pos / TILE_SIZE).round() * TILE_SIZE
-		if wood >= 5 and _can_place_wall(wall_pos):
+		if wood >= BUILD_COST_WALL and _can_place_wall(wall_pos):
 			buildings.append({"kind": "wall", "pos": wall_pos})
-			wood -= 5
+			wood -= BUILD_COST_WALL
 			build_mode = false
 			_play_audio("build.wav")
 			_save_game()
@@ -711,7 +716,7 @@ func _draw_hud() -> void:
 	_draw_button(Rect2(790, 445, 100, 58), "PALU", Color("7b5534"))
 	_draw_button(Rect2(700, 445, 70, 28), "AUDIO %s" % ("ON" if audio_enabled else "OFF"), Color("3869a8"))
 	if _is_night():
-		draw_string(ThemeDB.fallback_font, Vector2(560, 20), "NIGHT DANGER", HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color("ff8f7d"))
+		draw_string(ThemeDB.fallback_font, Vector2(560, 20), "NIGHT DANGER %.0f%%" % (danger_level * 100.0), HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color("ff8f7d"))
 	if alert_text != "":
 		var lines := alert_text.split("\n")
 		for i in range(lines.size()):
