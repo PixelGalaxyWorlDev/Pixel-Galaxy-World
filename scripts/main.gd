@@ -204,7 +204,7 @@ func _find_best_resource_for_colonist(colonist: Dictionary) -> int:
 		if node.get("amount", 0) <= 0: continue
 		if _get_colonist_role(colonist) == "fighter" and node.get("kind", "") == "food":
 			continue
-		var distance := colonist.pos.distance_to(node.get("pos", Vector2.ZERO))
+		var distance: float = colonist.pos.distance_to(node.get("pos", Vector2.ZERO))
 		if distance < best_distance:
 			best_distance = distance
 			best_index = i
@@ -228,7 +228,7 @@ func _auto_assign_tasks() -> void:
 		for j in range(monsters.size()):
 			var monster: Dictionary = monsters[j]
 			if monster.hp <= 0.0: continue
-			var d := colonist.pos.distance_to(monster.pos)
+			var d: float = colonist.pos.distance_to(monster.pos)
 			if d < nearest_monster_distance:
 				nearest_monster_index = j
 				nearest_monster_distance = d
@@ -444,7 +444,7 @@ func _update_colonist(colonist: Dictionary, delta: float) -> void:
 		var nearest_monster: Dictionary = {}
 		var nearest_distance := INF
 		for monster in monsters:
-			var distance := colonist.pos.distance_to(monster.pos)
+			var distance: float = colonist.pos.distance_to(monster.pos)
 			if monster.hp > 0.0 and distance < nearest_distance:
 				nearest_monster = monster
 				nearest_distance = distance
@@ -457,7 +457,7 @@ func _update_colonist(colonist: Dictionary, delta: float) -> void:
 		colonist.job = ""
 		colonist.target = -1
 		return
-	var distance := colonist.pos.distance_to(node.pos)
+	var distance: float = colonist.pos.distance_to(node.pos)
 	if distance > 42.0:
 		colonist.pos = colonist.pos.move_toward(node.pos, 120.0 * delta)
 	elif harvest_timer <= 0.0:
@@ -489,7 +489,7 @@ func _update_monsters(delta: float) -> void:
 		var nearest := INF
 		for colonist in colonists:
 			if colonist.hp <= 0.0: continue
-			var distance := monster.pos.distance_to(colonist.pos)
+			var distance: float = monster.pos.distance_to(colonist.pos)
 			if distance < nearest:
 				target = colonist
 				nearest = distance
@@ -709,10 +709,12 @@ func _draw_hud() -> void:
 		var x := 20.0 + i * 155.0
 		var color := Color("ffe65a") if i == selected_colonist else Color("c4d4f2")
 		var role_text := "Fighter"
+		var job_text := "kosong"
 		if _get_colonist_role(colonist) == "harvester": role_text = "Harvester"
 		elif _get_colonist_role(colonist) == "builder": role_text = "Builder"
+		if colonist.job != "": job_text = colonist.job
 		draw_string(ThemeDB.fallback_font, Vector2(x, 458), "%s  HP %d  %s" % [colonist.name, int(colonist.hp), role_text], HORIZONTAL_ALIGNMENT_LEFT, -1, 14, color)
-		draw_string(ThemeDB.fallback_font, Vector2(x, 480), "Lapar %d  Tidur %d  Job %s" % [int(colonist.hunger), int(colonist.sleep), colonist.job if colonist.job != "" else "kosong"], HORIZONTAL_ALIGNMENT_LEFT, -1, 11, Color("dbe7ff"))
+		draw_string(ThemeDB.fallback_font, Vector2(x, 480), "Lapar %d  Tidur %d  Job %s" % [int(colonist.hunger), int(colonist.sleep), job_text], HORIZONTAL_ALIGNMENT_LEFT, -1, 11, Color("dbe7ff"))
 	_draw_button(Rect2(790, 445, 100, 58), "PALU", Color("7b5534"))
 	_draw_button(Rect2(700, 445, 70, 28), "AUDIO %s" % ("ON" if audio_enabled else "OFF"), Color("3869a8"))
 	if _is_night():
