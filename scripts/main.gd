@@ -11,6 +11,8 @@ const SAVE_PATH := "user://pixel_galaxy_world.save"
 var mode := "menu"
 var paused := false
 var game_speed := 1.0
+var audio_enabled := true
+var master_volume := 1.0
 var day := 1
 var time_of_day := 0.2
 var camera_offset := Vector2(0.0, 0.0)
@@ -158,6 +160,12 @@ func _show_tutorial() -> void:
 		return
 	tutorial_seen = true
 	_set_alert("Panduan:\n1. Tap kolonis\n2. Tap sumber daya\n3. Tekan PALU untuk bangun")
+
+func _can_place_wall(pos: Vector2) -> bool:
+	for building in buildings:
+		if building.get("kind", "") == "wall" and building.get("pos", Vector2.ZERO).distance_to(pos) < 10.0:
+			return false
+	return true
 
 func _get_colonist_role(colonist: Dictionary) -> String:
 	if colonist.has("role") and typeof(colonist["role"]) == TYPE_STRING:
@@ -321,6 +329,11 @@ func _process(delta: float) -> void:
 			_show_tutorial()
 		if not paused:
 			_update_game(delta * game_speed)
+	if build_mode:
+		var mouse_pos := get_viewport().get_mouse_position()
+		if mouse_pos.x >= 0.0 and mouse_pos.x <= VIEW_SIZE.x and mouse_pos.y >= 0.0 and mouse_pos.y <= VIEW_SIZE.y:
+			build_preview_pos = (mouse_pos + camera_offset) / TILE_SIZE
+			build_preview_pos = Vector2(floor(build_preview_pos.x), floor(build_preview_pos.y)) * TILE_SIZE
 	if alert_time > 0.0:
 		alert_time -= delta
 		if alert_time <= 0.0: alert_text = ""
@@ -475,8 +488,18 @@ func _unhandled_input(event: InputEvent) -> void:
 		_pointer_drag(event.position)
 	elif event is InputEventMouseMotion and dragging:
 		_pointer_drag(event.position)
-	if event is InputEventKey and event.pressed and event.keycode == KEY_SPACE and mode == "game":
-		paused = not paused
+	if event is InputEventKey and event.pressed:
+		match event.keycode:
+			KEY_SPACE:
+				if mode == "game": paused = not paused
+			KEY_R:
+				if mode == "game" or mode == "over":
+					_reset_world(); mode = "game"
+			KEY_M:
+				audio_enabled = not audio_enabled
+				_set_alert("Audio %s" % ("ON" if audio_enabled else "OFF"))
+			KEY_ESCAPE:
+				if mode == "game": paused = true
 
 func _pointer_down(screen_pos: Vector2) -> void:
 	dragging = true
@@ -511,6 +534,11 @@ func _pointer_up(screen_pos: Vector2) -> void:
 		elif Rect2(790, 4, 38, 40).has_point(screen_pos): paused = false; game_speed = 1.0
 		elif Rect2(748, 4, 38, 40).has_point(screen_pos): paused = false; game_speed = 3.0
 		return
+	if Rect2(700, 445, 70, 28).has_point(screen_pos):
+		audio_enabled = not audio_enabled
+		_set_alert("Audio %s" % ("ON" if audio_enabled else "OFF"))
+		if audio_enabled: _play_audio("ambient.wav")
+		return
 	if screen_pos.y > 435.0 and Rect2(790, 435, 100, 78).has_point(screen_pos):
 		build_mode = true
 		build_preview_active = true
@@ -525,17 +553,15 @@ func _pointer_up(screen_pos: Vector2) -> void:
 	if build_mode:
 		build_preview_active = false
 		var wall_pos := (world_pos / TILE_SIZE).round() * TILE_SIZE
-		if wood >= 5:
+		if wood >= 5 and _can_place_wall(wall_pos):
 			buildings.append({"kind": "wall", "pos": wall_pos})
 			wood -= 5
-			if _get_colonist_role(colonists[selected_colonist]) == "builder":
-				wood = maxi(0, wood)
 			build_mode = false
 			_play_audio("build.wav")
 			_save_game()
 		else:
 			build_mode = false
-			_set_alert("Kayu kurang!")
+			_set_alert("Kayu kurang atau lokasi dinding penuh!")
 		return
 	for i in range(colonists.size()):
 		if world_pos.distance_to(colonists[i].pos) < 36.0 and colonists[i].hp > 0.0:
@@ -554,9 +580,12 @@ func _pointer_up(screen_pos: Vector2) -> void:
 			return
 
 func _play_audio(file_name: String) -> void:
+	if not audio_enabled:
+		return
 	var stream = load("res://project/resources/audio/" + file_name)
 	if stream:
 		audio_player.stream = stream
+		audio_player.volume_db = 0.0
 		audio_player.play()
 
 func _draw() -> void:
@@ -625,9 +654,13 @@ func _draw_hud() -> void:
 		var colonist: Dictionary = colonists[i]
 		var x := 20.0 + i * 155.0
 		var color := Color("ffe65a") if i == selected_colonist else Color("c4d4f2")
-		draw_string(ThemeDB.fallback_font, Vector2(x, 458), "%s  HP %d" % [colonist.name, int(colonist.hp)], HORIZONTAL_ALIGNMENT_LEFT, -1, 14, color)
-		draw_string(ThemeDB.fallback_font, Vector2(x, 480), "Lapar %d  Tidur %d" % [int(colonist.hunger), int(colonist.sleep)], HORIZONTAL_ALIGNMENT_LEFT, -1, 11, Color("dbe7ff"))
+		var role_text := "Fighter"
+		if _get_colonist_role(colonist) == "harvester": role_text = "Harvester"
+		elif _get_colonist_role(colonist) == "builder": role_text = "Builder"
+		draw_string(ThemeDB.fallback_font, Vector2(x, 458), "%s  HP %d  %s" % [colonist.name, int(colonist.hp), role_text], HORIZONTAL_ALIGNMENT_LEFT, -1, 14, color)
+		draw_string(ThemeDB.fallback_font, Vector2(x, 480), "Lapar %d  Tidur %d  Job %s" % [int(colonist.hunger), int(colonist.sleep), colonist.job if colonist.job != "" else "kosong"], HORIZONTAL_ALIGNMENT_LEFT, -1, 11, Color("dbe7ff"))
 	_draw_button(Rect2(790, 445, 100, 58), "PALU", Color("7b5534"))
+	_draw_button(Rect2(700, 445, 70, 28), "AUDIO %s" % ("ON" if audio_enabled else "OFF"), Color("3869a8"))
 	if alert_text != "":
 		var lines := alert_text.split("\n")
 		for i in range(lines.size()):
