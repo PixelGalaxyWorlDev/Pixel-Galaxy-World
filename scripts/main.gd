@@ -27,6 +27,8 @@ var alert_text := ""
 var alert_time := 0.0
 var selected_colonist := 0
 var tutorial_seen := false
+var build_preview_pos := Vector2.ZERO
+var build_preview_active := false
 var wood := 20
 var stone := 10
 var metal := 0
@@ -37,9 +39,9 @@ var textures: Dictionary = {}
 var audio_player: AudioStreamPlayer
 
 var colonists := [
-	{"name": "Rex", "pos": Vector2(300, 330), "hp": 100.0, "hunger": 100.0, "sleep": 100.0, "mood": 100.0, "job": "", "target": -1},
-	{"name": "Luna", "pos": Vector2(340, 360), "hp": 100.0, "hunger": 100.0, "sleep": 100.0, "mood": 100.0, "job": "", "target": -1},
-	{"name": "Bolt", "pos": Vector2(380, 400), "hp": 100.0, "hunger": 100.0, "sleep": 100.0, "mood": 100.0, "job": "", "target": -1},
+	{"name": "Rex", "role": "fighter", "pos": Vector2(300, 330), "hp": 100.0, "hunger": 100.0, "sleep": 100.0, "mood": 100.0, "job": "", "target": -1},
+	{"name": "Luna", "role": "harvester", "pos": Vector2(340, 360), "hp": 100.0, "hunger": 100.0, "sleep": 100.0, "mood": 100.0, "job": "", "target": -1},
+	{"name": "Bolt", "role": "builder", "pos": Vector2(380, 400), "hp": 100.0, "hunger": 100.0, "sleep": 100.0, "mood": 100.0, "job": "", "target": -1},
 ]
 
 var resource_nodes: Array[Dictionary] = []
@@ -126,6 +128,8 @@ func _reset_world() -> void:
 	food = 10
 	selected_colonist = 0
 	build_mode = false
+	build_preview_active = false
+	build_preview_pos = Vector2.ZERO
 	alert_text = ""
 	for i in range(colonists.size()):
 		var colonist: Dictionary = colonists[i]
@@ -136,6 +140,8 @@ func _reset_world() -> void:
 		colonist.mood = 100.0
 		colonist.job = ""
 		colonist.target = -1
+		if not colonist.has("role"):
+			colonist["role"] = ["fighter", "harvester", "builder"][i]
 		colonists[i] = colonist
 	var spots := [Vector2(300, 200), Vector2(500, 150), Vector2(700, 250), Vector2(250, 400), Vector2(600, 420), Vector2(900, 180), Vector2(1100, 300), Vector2(1400, 200), Vector2(1600, 380), Vector2(1200, 500), Vector2(200, 700), Vector2(450, 900), Vector2(800, 800), Vector2(1500, 700), Vector2(1800, 500), Vector2(2100, 300), Vector2(2400, 600), Vector2(2700, 400), Vector2(400, 1200), Vector2(1000, 1100), Vector2(1700, 1000), Vector2(2300, 1100), Vector2(2900, 900), Vector2(2600, 1400)]
 	var kinds := ["tree", "rock", "metal", "crystal", "food"]
@@ -152,6 +158,31 @@ func _show_tutorial() -> void:
 		return
 	tutorial_seen = true
 	_set_alert("Panduan:\n1. Tap kolonis\n2. Tap sumber daya\n3. Tekan PALU untuk bangun")
+
+func _get_colonist_role(colonist: Dictionary) -> String:
+	if colonist.has("role") and typeof(colonist["role"]) == TYPE_STRING:
+		return colonist["role"]
+	return "fighter"
+
+func _role_bonus_damage(colonist: Dictionary) -> float:
+	match _get_colonist_role(colonist):
+		"fighter":
+			return 1.35
+		"harvester":
+			return 1.0
+		"builder":
+			return 1.15
+		_:
+			return 1.0
+
+func _role_bonus_harvest(colonist: Dictionary) -> int:
+	match _get_colonist_role(colonist):
+		"harvester":
+			return 2
+		"builder":
+			return 1
+		_:
+			return 1
 
 func _save_game() -> void:
 	var save_data := {
@@ -364,9 +395,12 @@ func _update_colonist(colonist: Dictionary, delta: float) -> void:
 		colonist.pos = colonist.pos.move_toward(node.pos, 120.0 * delta)
 	elif harvest_timer <= 0.0:
 		harvest_timer = 1.2
+		var gain_amount := _role_bonus_harvest(colonist)
+		if node.kind in ["tree", "rock", "food"]:
+			gain_amount += 1
 		node.amount -= 1
 		resource_nodes[colonist.target] = node
-		_match_resource(node.kind, 2 if node.kind in ["tree", "rock", "food"] else 1)
+		_match_resource(node.kind, gain_amount)
 		colonist.mood = minf(100.0, colonist.mood + 1.0)
 
 func _match_resource(kind: String, amount: int) -> void:
@@ -408,7 +442,7 @@ func _update_monsters(delta: float) -> void:
 			if colonist.job != "attack": continue
 			for monster in monsters:
 				if monster.hp > 0.0 and colonist.pos.distance_to(monster.pos) < 55.0:
-					monster.hp -= 12.0
+					monster.hp -= 12.0 * _role_bonus_damage(colonist)
 					attack_timer = 0.8
 		monsters = monsters.filter(func(m): return m.hp > 0.0)
 
@@ -479,6 +513,8 @@ func _pointer_up(screen_pos: Vector2) -> void:
 		return
 	if screen_pos.y > 435.0 and Rect2(790, 435, 100, 78).has_point(screen_pos):
 		build_mode = true
+		build_preview_active = true
+		build_preview_pos = (screen_pos + camera_offset) / TILE_SIZE
 		_set_alert("Bangun dinding: tap tanah (5 kayu)")
 		return
 	if selected_colonist < 0 or selected_colonist >= colonists.size():
@@ -487,9 +523,13 @@ func _pointer_up(screen_pos: Vector2) -> void:
 		return
 	var world_pos := screen_pos + camera_offset
 	if build_mode:
+		build_preview_active = false
+		var wall_pos := (world_pos / TILE_SIZE).round() * TILE_SIZE
 		if wood >= 5:
-			buildings.append({"kind": "wall", "pos": (world_pos / TILE_SIZE).round() * TILE_SIZE})
+			buildings.append({"kind": "wall", "pos": wall_pos})
 			wood -= 5
+			if _get_colonist_role(colonists[selected_colonist]) == "builder":
+				wood = maxi(0, wood)
 			build_mode = false
 			_play_audio("build.wav")
 			_save_game()
@@ -567,6 +607,10 @@ func _draw_world() -> void:
 	for monster in monsters:
 		var frame := int(monster.frame_time * 5.0) % 4
 		_draw_texture(monster.kind + str(frame), Rect2(monster.pos - camera_offset - Vector2(32, 32), Vector2(64, 64)))
+	if build_mode and build_preview_active:
+		var preview_rect := Rect2((build_preview_pos * TILE_SIZE) - camera_offset - Vector2(24, 24), Vector2(48, 48))
+		draw_rect(preview_rect, Color(0.8, 0.95, 1.0, 0.25), true)
+		draw_rect(preview_rect, Color(0.95, 0.98, 1.0, 0.85), false, 2.0)
 	if _is_night(): draw_rect(Rect2(Vector2.ZERO, VIEW_SIZE), Color(0.03, 0.06, 0.18, 0.40))
 
 func _draw_hud() -> void:
