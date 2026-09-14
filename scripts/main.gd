@@ -174,7 +174,8 @@ func _show_tutorial() -> void:
 func _can_place_wall(pos: Vector2) -> bool:
 	for building in buildings:
 		var building_pos: Vector2 = _get_position(building)
-		if building.get("kind", "") == "wall" and building_pos.distance_to(pos) < 10.0:
+		var distance: float = building_pos.distance_to(pos)
+		if building.get("kind", "") == "wall" and distance < 10.0:
 			return false
 	return true
 
