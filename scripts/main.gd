@@ -452,7 +452,7 @@ func _update_game(delta: float) -> void:
 func _update_colonist(colonist: Dictionary, delta: float) -> void:
 	if colonist.job == "attack":
 		var nearest_monster: Dictionary = {}
-		var nearest_distance := INF
+		var nearest_distance: float = INF
 		for monster in monsters:
 			var distance: float = _get_position(colonist).distance_to(_get_position(monster))
 			if monster.hp > 0.0 and distance < nearest_distance:
