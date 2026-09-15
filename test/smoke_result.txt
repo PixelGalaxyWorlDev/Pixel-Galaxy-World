@@ -1,0 +1,103 @@
+game=@Node2D@2 mode=menu colonists=0 textures=86
+OK   P1 menu mode
+OK   P1 assets loaded
+OK   P1 tex grass
+OK   P1 tex rex0
+OK   P1 tex slime0
+OK   P1 tex wall
+OK   P1 tex turret
+OK   P1 draw menu ok
+OK   P1 game mode
+OK   P1 3 colonists
+OK   P1 names
+OK   P1 nodes spawned
+OK   P1 starting res
+OK   P1 pod+campfire
+OK   P2 sim ran 60s
+OK   P2 colonists move
+OK   P2 jobs assigned
+P2 jobs seen: ["harvest", "", "haul"]
+OK   P2 calm hour no casualties
+OK   P2 mood stays sane (>25 after 120s)
+OK   P3 build menu open
+OK   P3 turret selected
+OK   P4 turret placed
+OK   P4 bed placed
+OK   P4 farm placed
+OK   P4 stove placed
+OK   P4 blockish rebuild ok
+OK   P5 wall placed
+OK   P5 wall blueprint state
+OK   P5 blueprint does not block
+OK   P5 wall constructed by builder
+OK   P5 path avoids wall cell
+OK   P5 blocked map has wall
+OK   P5 path into wall rejected
+OK   P6 ui wall placed
+OK   P6 build mode cleared
+OK   P7 move job set
+OK   P7 colonist walked (161px)
+OK   P7 move job cleared
+OK   P8 monster present
+OK   P8 turret fired
+OK   P8 turret killed slime
+OK   P9 bat spawned
+OK   P9 colonist killed bat
+OK   P9 attack job cleared
+OK   P10 fighter auto-defense
+OK   P11 farm grew
+OK   P11 farm harvested & replanted
+OK   P11 stove cooked (+2 food)
+OK   P11 cook job cleared
+OK   P12 ate a meal
+OK   P12 hunger restored
+OK   P12 raw fallback ate
+OK   P13 ground sleep job
+OK   P13 sleep recovers
+OK   P14 rescue completed
+OK   P14 victim stabilized (hp>=22)
+OK   P14 rescue job cleared
+OK   P15 medkit healed (+35)
+OK   P15 medkit consumed
+OK   P16 wall ring placed (8/8)
+OK   P16 enclosure blocks entry
+OK   P16 golem spawned
+OK   P16 golem chews wall ring
+OK   P16 golem breaks through eventually
+OK   P16 luna still alive
+OK   P17 night monsters spawned
+OK   P17 raid spawned monsters
+OK   P17 raid alert
+OK   P18 save file written
+OK   P18 load returns true
+OK   P18 wood restored
+OK   P18 day restored
+OK   P18 food restored
+OK   P18 colonists restored
+OK   P18 buildings restored
+OK   P18 mode stays game
+OK   P18 draw after load ok
+OK   P20 win screen
+OK   P20 win title
+OK   P20 restart new game
+OK   P20 restart day 1
+OK   P21 lose screen
+OK   P21 lose title
+OK   P21 back to menu
+OK   P22 new game started
+OK   P22 draw game+buildmenu ok
+OK   P22 draw build preview ok
+OK   P22 draw night overlay ok
+OK   P22 draw alert ok
+OK   P23 pause button
+OK   P23 speed 1x unpauses
+OK   P23 speed 1x value
+OK   P23 speed 3x value
+OK   P24 audio toggled
+OK   P24 audio toggled back
+OK   P25 portrait selects colonist
+OK   P26 long-run no crash (240s)
+OK   P26 still in game or ended cleanly
+P26 end state: mode=game day=2 monsters=9 kills=0
+
+=== RESULT: 98 OK / 0 FAIL / 0 crashes ===

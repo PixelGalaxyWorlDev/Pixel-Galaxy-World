@@ -517,7 +517,7 @@ func _add_res(key: String, amount: int) -> void:
 			medkits += amount
 
 # ====================================================== PATHFINDING ======
-func _find_path(from_cell: Vector2i, to_cell: Vector2i) -> Array:
+func _find_path(from_cell: Vector2i, to_cell: Vector2i, no_fallback := false) -> Array:
 	if not _in_bounds(to_cell):
 		return []
 	if from_cell == to_cell:
@@ -551,7 +551,7 @@ func _find_path(from_cell: Vector2i, to_cell: Vector2i) -> Array:
 			var nb: Vector2i = current + dir
 			if not _in_bounds(nb):
 				continue
-			if nb != to_cell and blocked.has(nb):
+			if blocked.has(nb):
 				continue
 			if ground.get(nb, "grass") == "water":
 				continue
@@ -560,16 +560,23 @@ func _find_path(from_cell: Vector2i, to_cell: Vector2i) -> Array:
 				g_score[nb] = tentative
 				came_from[nb] = current
 				open.append([tentative + _cell_dist(nb, to_cell), tentative, nb, current])
-	# no path: nearest reachable open cell to target
+	# no path: nearest reachable open cell to target (strict mode: give up)
+	if no_fallback:
+		return []
 	return _nearest_open(from_cell, to_cell)
 
 func _nearest_open(from_cell: Vector2i, to_cell: Vector2i) -> Array:
-	# BFS from target outward to find closest cell reachable-ish; fallback: straight line cells
+	# A* failed -> to_cell is unreachable (enclosed or water-locked).
+	# Find the reachable open cell closest to the target; walk there instead.
+	# NOTE: the target cell itself is excluded from the scan - returning it
+	# would create a fake 1-hop path that phases actors through walls.
 	var best: Vector2i = from_cell
 	var best_d := 1e9
 	for r in range(1, 6):
 		for dx in range(-r, r + 1):
 			for dy in range(-r, r + 1):
+				if dx == 0 and dy == 0:
+					continue
 				var c: Vector2i = to_cell + Vector2i(dx, dy)
 				if not _in_bounds(c) or blocked.has(c):
 					continue
@@ -583,7 +590,8 @@ func _nearest_open(from_cell: Vector2i, to_cell: Vector2i) -> Array:
 			break
 	if best == from_cell:
 		return []
-	return _find_path(from_cell, best) if best != to_cell else [to_cell]
+	# strict: if the from-cell is itself enclosed, this returns [] (no recursion)
+	return _find_path(from_cell, best, true)
 
 func _cell_dist(a: Vector2i, b: Vector2i) -> float:
 	var dx: float = absf(a.x - b.x)
@@ -2124,9 +2132,12 @@ func _draw_night_overlay() -> void:
 		draw_rect(Rect2(Vector2.ZERO, VIEW_SIZE), Color(0.04, 0.06, 0.2, alpha))
 
 func _draw_build_preview() -> void:
-	var mouse := get_viewport().get_mouse_position()
 	if build_mode == "":
 		return
+	var vp := get_viewport()
+	if vp == null:
+		return
+	var mouse := vp.get_mouse_position()
 	var world_pos := mouse + camera_offset
 	var cell := _world_to_cell(world_pos)
 	var def: Dictionary = BUILDINGS[build_mode]
