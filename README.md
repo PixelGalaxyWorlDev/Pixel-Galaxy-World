@@ -31,7 +31,7 @@ Kolonisasi planet asing bersama tiga kolonis (Rex, Luna, Bolt). Panen sumber day
 1. Install Godot 4 dari sumber resmi atau Godot Android Editor.
 2. Clone repo ini atau unduh ZIP:
    ```
-   git clone https://github.com/KenopsiaHUB-101/Pixel-Galaxy-World.git
+   git clone https://github.com/PixelGalaxyWorlDev/Pixel-Galaxy-World.git
    ```
 3. Buka folder repo ini sebagai project Godot. File project-nya adalah `project.godot` di root.
 4. Jalankan scene utama `main.tscn`. Kontrol mouse dan touch memakai input yang sama.
